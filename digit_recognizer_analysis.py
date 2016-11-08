@@ -20,8 +20,8 @@ test = pd.read_csv('test.csv')
 # It's commented out but results are listed.
 
 # View data dimensions.
-train.shape
-test.shape
+# train.shape
+# test.shape
 
 # Check out data description.
 # This isn't very helpful due to the large number of columns.
