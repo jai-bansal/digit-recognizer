@@ -7,6 +7,7 @@
 
 # Import modules.
 import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
 
 # Import training and test data.
 # Working directory must be set to the 'digit_recognizer' repository folder.
@@ -51,3 +52,33 @@ test = pd.read_csv('test.csv')
 # BASELINE MODEL
 #################
 # This section implements a baseline random forest model with no feature engineering or modification.
+
+# Create random forest classifier.
+# This script is mostly instructional so I use a very small number of trees.
+baseline_rf = RandomForestClassifier(n_estimators = 25,
+                                     oob_score = True,
+                                     random_state = 1234)
+
+# Fit 'baseline_rf' on training data.
+baseline_rf.fit(train.drop('label',
+                           axis = 1),
+                train['label'])
+
+# Generate predictions for training and test data.
+train['baseline_pred'] = baseline_rf.predict(train.drop('label',
+                                                        axis = 1))
+test['baseline_pred'] = baseline_rf.predict(test)
+
+# Compute training set accuracy.
+100 * sum(train['label'] == train['baseline_pred']) / len(train['baseline_pred'])
+
+# Check cross-validation accuracy.
+# For random forest, OOB score can be used for cross-validation.
+baseline_rf.oob_score_
+
+# Test set accuracy cannot be checked as I do not have the answers for the test set.
+
+###########
+# PCA MODEL
+###########
+# This section conducts Principal Components Analysis (PCA) before using a random forest model for prediction.
