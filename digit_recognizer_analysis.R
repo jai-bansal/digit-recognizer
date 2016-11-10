@@ -89,5 +89,51 @@
 
 # PCA MODEL ---------------------------------------------------------------
 # This section conducts Principal Components Analysis (PCA) before using a random forest model for prediction.
+  
+  # Conduct principal component analysis on 'train'.
+  # I conduct one PCA keeping all components and another removing some of the least useful componenets.
+  # Normally, I would scale 'train' within the 'prcomp' command. But I do not for 2 reasons:
+    # 1. All of the data is pixel data ranging from 0 to 255 so the scales are identical for all variables.
+    # 2. Some of the columns are all a single number (I assume 0) which makes scaling fail.
+  # This takes a little while.
+  full_pca = prcomp(train[, 
+                          !c('label', 'baseline_pred'),
+                          with = F], 
+                    center = T)
+  lim_pca = prcomp(train[, 
+                         !c('label', 'baseline_pred'), 
+                         with = F], 
+                   tol = 0.1, 
+                   center = T)
+  
+  # View the summaries.
+  summary(full_pca)
+  summary(lim_pca)
+  
+  # Plot the variances associated with the principal components.
+  plot(full_pca)
+  plot(lim_pca)
+  
+  # Train random forests using the output of 'full_pca' and 'lim_pca'.
+  full_pca_rf = 
+  lim_pca_rf = 
+    
+  # Generate test predictions.
+  
+    # Apply 'full_pca' and 'lim_pca' to 'test'.
+    full_test_comp = predict(full_pca, 
+                             newdata = test[, 
+                                            !'baseline_pred', 
+                                            with = F])
+    lim_test_comp = predict(lim_pca, 
+                            newdata = test[, 
+                                           !'baseline_pred', 
+                                           with = F])
+    
+    # Generate test predictions...
+    test$full_pca_pred = 
+    test$lim_pca_pred =
+      
+  # Test set accuracy cannot be checked as I do not have the answers for the test set.
 
   
