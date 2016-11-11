@@ -1,23 +1,23 @@
 #### Summary:
-This project attempts digit recognition using pixel information about handwritten digits using a data set originally from MNIST (and actually downloaded from kaggle.com). The goal is to use the pixel information to predict what number has been drawn. Multiple models are evaluated in R and Python.
+This project attempts digit recognition using pixel information about handwritten digits using a data set originally from MNIST (and actually downloaded from kaggle.com). The goal is to use the pixel information to predict what number has been drawn. Multiple models are evaluated in R and Python.   
+
+Perhaps surprisingly, in the R branch, using principal components analysis does not improve predictive power.
 
 #### Motivation:
-I created this project to learn about object recognition.
+I created this project to learn about object recognition and experiment with principal components analysis.
 
-### Contents:
+#### Contents:
 The R and Python analyses are located in the "R" and "Python" branches respectively.
 
 The "R" branch contains:
 - the training and test data from kaggle.com ("train.csv") and ("test.csv") respectively
-***
-TO BE FILLED IN
-***
+- a script including a baseline model and 2 models after using principal components analysis ("digit_recognizer_analysis.R")
 
 The "Python" branch contains
 - the training and test data from kaggle.com ("train.csv") and ("test.csv") respectively
-***
-TO BE FILLED IN
-***
+***   
+TO BE FILLED IN   
+***   
 
 #### Dataset Details:
 The data used is pixel information about handwritten single digits from MNIST (Modified National Institute of Standards and Technology).
