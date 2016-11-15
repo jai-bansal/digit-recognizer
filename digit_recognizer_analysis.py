@@ -92,15 +92,14 @@ del(baseline_rf)
 ###########
 # This section conducts Principal Components Analysis (PCA) before using a random forest model for prediction.
 
-# Create and fit principal component analysis objects.
+# Create and fit principal component analysis object.
 # I conduct one PCA removing many of the least useful components.
 # I exclude the full component PCA (included in the R branch) to avoid hitting a memory error.
-# I assume the order of the data doesn't matter because I just use the first few rows for PCA (no random sampling of rows).
 # Normally, I would scale 'train'. But I do not for 2 reasons:
 # 1. All of the data is pixel data ranging from 0 to 255 so the scales are identical for all variables.
 # 2. Some of the columns are all a single number (I assume 0) which makes scaling fail.
 pca = PCA(n_components = 50,
-          random_state = 1234).fit(train_features.head(3000))
+          random_state = 1234).fit(train_features.sample(n = 1000))
 
 # Apply 'pca' to 'train' and 'test'.
 train_comp = pca.transform(train_features)
