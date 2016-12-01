@@ -8,7 +8,6 @@
 # Import modules.
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.pipeline import make_pipeline
 from sklearn.decomposition import PCA
 
 # Import training and test data.
