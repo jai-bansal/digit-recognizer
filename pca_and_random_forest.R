@@ -47,8 +47,6 @@
   # min(test)
   # max(test)
   
-  
-
 # BASELINE MODEL ----------------------------------------------------------
 # This section implements a baseline random forest model with no feature engineering or modification.
   
