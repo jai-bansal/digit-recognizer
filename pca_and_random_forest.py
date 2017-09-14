@@ -1,4 +1,4 @@
-# This script uses pixel data to predict handwritten digits.
+# This script uses pixel data to predict handwritten digits using PCA and random forests.
 
 #################
 # PREP AND IMPORT
