@@ -1,5 +1,7 @@
 # This script uses pixel data to predict handwritten digits using
-# a convolutional neural network (CNNN) using the 'tensorflow' package.
+# a convolutional neural network (CNN) using the 'tensorflow' package.
+
+# This script borrows generously from the Udacity Deep Learning Course, Assignment 4.
 
 ################
 # IMPORT MODULES
@@ -32,21 +34,65 @@ train_data = train.drop('label',
                         axis = 1).as_matrix()
 test_data = test.as_matrix()
 
+# Images currently have 1 row per image.
+# For a CNN, I need square/rectangle images so the filter can sweep along.
+train_data = tf.reshape(train_data,
+                        [train.shape[0], 28, 28, 1])
+test_data = tf.reshape(test_data,
+                       [test.shape[0], 28, 28, 1])
+
 # Turn training labels into one-hot vectors.
 # Training labels are already integers.
 # There are no labels for the test data.
 train_labels_one_hot = LabelBinarizer().fit_transform(train.label)
+
+######################
+# SET MODEL PARAMETERS
+######################
+# This section sets model parameters.
+
+# Specify number of classes (output labels).
+classes = 10
+
+# Specify image size in pixels.
+image_size = 28
+
+# Specify number of channels (1 since the images are greyscale).
+channels = 1
+
+# Set # of iterations to run.
+steps = 100
+
+# Set batch size.
+batch_size = 16
+
+# Set patch size for filter.
+patch_size = 5
+
+# Set output depth for filters.
+output_depth = 16
+
+# Set number of hidden nodes.
+hidden = 64
 
 ##############
 # CREATE MODEL
 ##############
 # This section creates a CNN using 'tensorflow'.
 
-# Specify number of classes (output labels).
-classes = 10
+# Set up graph.
+graph = tf.Graph()
+with graph.as_default():
 
-# Set # of iterations to run.
-steps = 100
+    # Set random seed.
+    tf.set_random_seed(20170914)
+
+    # Input placeholders for batch processes.
+    # Input test data.
+    train_place = tf.placeholder(tf.float32,
+                                 shape = (batch_size, image_size, image_size, num_channels))
+
+
 
 
 ##################
