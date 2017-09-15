@@ -12,6 +12,7 @@
 import pandas as pd
 from sklearn.preprocessing import LabelBinarizer
 import tensorflow as tf
+import numpy as np
 
 #############
 # IMPORT DATA
@@ -36,10 +37,8 @@ test_data = test.as_matrix()
 
 # Images currently have 1 row per image.
 # For a CNN, I need square/rectangle images so the filter can sweep along.
-train_data = tf.reshape(train_data,
-                        [train.shape[0], 28, 28, 1])
-test_data = tf.reshape(test_data,
-                       [test.shape[0], 28, 28, 1])
+train_data = train_data.reshape(train.shape[0], 28, 28, 1).astype(np.float32)
+test_data = test_data.reshape(test.shape[0], 28, 28, 1).astype(np.float32)
 
 # Turn training labels into one-hot vectors.
 # Training labels are already integers.
@@ -90,7 +89,36 @@ with graph.as_default():
     # Input placeholders for batch processes.
     # Input test data.
     train_place = tf.placeholder(tf.float32,
-                                 shape = (batch_size, image_size, image_size, num_channels))
+                                 shape = (batch_size, image_size, image_size, channels))
+    train_labels = tf.placeholder(tf.float32,
+                                  shape = (batch_size, classes))
+    test_data = tf.constant(test_data)
+
+    # Specify convolution filters and biases.
+    conv_1 = tf.Variable(tf.truncated_normal([patch_size,
+                                              patch_size,
+                                              channels,
+                                              output_depth],
+                                             stddev = 0.1))
+    conv_bias_1 = tf.Variable(tf.zeros([output_depth]))
+
+    conv_2 = tf.Variable(tf.truncated_normal([patch_size,
+                                              patch_size,
+                                              output_depth,
+                                              output_depth],
+                                             stddev = 0.1))
+    conv_bias_2 = tf.Variable(tf.constant(1.0,
+                                          shape = [output_depth]))
+    
+    # Specify weights and biases for fully connected layers.
+    w_1 = tf.Variable(tf.truncated_normal([(image_size / 4) * (image_size / 4) * output_depth,
+                                           hidden],
+                                          stddev = 0.1))
+    b_1 = tf.Variable(tf.constant(1.0,
+                                  shape = [num_hidden]))
+
+    w_2 = tf.Variable(tf.truncated_normal())
+    
 
 
 
@@ -176,4 +204,3 @@ with graph.as_default():
 ##test['pca_pred'] = pca_rf.predict(test_comp)
 ##
 ### Test set accuracy cannot be checked as I do not have the answers for the test set.
-##
