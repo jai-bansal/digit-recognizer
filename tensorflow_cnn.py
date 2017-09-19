@@ -95,112 +95,129 @@ with graph.as_default():
     test_data = tf.constant(test_data)
 
     # Specify convolution filters and biases.
-    conv_1 = tf.Variable(tf.truncated_normal([patch_size,
-                                              patch_size,
-                                              channels,
-                                              output_depth],
-                                             stddev = 0.1))
-    conv_bias_1 = tf.Variable(tf.zeros([output_depth]))
+    filter_1 = tf.Variable(tf.truncated_normal([patch_size,
+                                                patch_size,
+                                                channels,
+                                                output_depth],
+                                               stddev = 0.1))
+    filter_1_bias = tf.Variable(tf.zeros([output_depth]))
 
-    conv_2 = tf.Variable(tf.truncated_normal([patch_size,
-                                              patch_size,
-                                              output_depth,
-                                              output_depth],
-                                             stddev = 0.1))
-    conv_bias_2 = tf.Variable(tf.constant(1.0,
-                                          shape = [output_depth]))
+    filter_2 = tf.Variable(tf.truncated_normal([patch_size,
+                                                patch_size,
+                                                output_depth,
+                                                output_depth],
+                                               stddev = 0.1))
+    filter_2_bias = tf.Variable(tf.constant(1.0,
+                                            shape = [output_depth]))
     
     # Specify weights and biases for fully connected layers.
-    w_1 = tf.Variable(tf.truncated_normal([(image_size / 4) * (image_size / 4) * output_depth,
+    w_1 = tf.Variable(tf.truncated_normal([(image_size // 4) * (image_size // 4) * output_depth,
                                            hidden],
                                           stddev = 0.1))
     b_1 = tf.Variable(tf.constant(1.0,
-                                  shape = [num_hidden]))
+                                  shape = [hidden]))
 
-    w_2 = tf.Variable(tf.truncated_normal())
+    w_2 = tf.Variable(tf.truncated_normal([hidden, classes],
+                                          stddev = 0.1))
+    b_2 = tf.Variable(tf.constant(1.0,
+                                  shape = [classes]))
+
+    # Define training operations.
+    # This is only done in a function because the code this script is based on had it this way :p
+    def training_computations(data):
+
+        # Specify first convolution.
+        conv_1 = tf.nn.conv2d(data,
+                              filter_1,
+                              [1, 2, 2, 1],
+                              padding = 'SAME')
+
+        # Compute 'relu' on 'conv_1'.
+        relu_1 = tf.nn.relu(conv_1 + filter_1_bias)
+
+        # Specify second convolution.
+        conv_2 = tf.nn.conv2d(relu_1,
+                              filter_2,
+                              [1, 2, 2, 1],
+                              padding = 'SAME')
+
+        # Compute 'relu' on 'conv_2'.
+        relu_2 = tf.nn.relu(conv_2 + filter_2_bias)
+
+        # Save dimensions of 'relu_2'.
+        shape = relu_2.get_shape().as_list()
+
+        # Reshape 'relu_2' for fully connected layer operations.
+        relu_2_reshape = tf.reshape(relu_2,
+                                    [shape[0], (shape[1] * shape[2] * shape[3])])
+
+        # Conduct first fully connected layer matrix multiplication and 'relu' operation.
+        full_1 = tf.nn.relu(tf.matmul(relu_2_reshape, w_1) + b_1)
+
+        # Return second fully connected layer matrix multiplication.
+        return(tf.matmul(full_1, w_2) + b_2)
+
+    # Execute training computation.
+    logits = training_computations(train_place)
+
+    # Specify loss.
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels = train_labels,
+                                                                  logits = logits))
+
+    # Specify optimizer.
+    optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
+
+    # Generate predictions for training and test set.
+    train_pred = tf.nn.softmax(logits)
+    test_pred = tf.nn.softmax(training_computations(test_data))
+
+# Run graph.
+with tf.Session(graph = graph) as session:
+
+    # Initialize variables.
+    session.run(tf.global_variables_initializer())
+
+    # Iterate.
+    for step in range(steps):
+
+        # Select index to pick batch.
+        # Just having the expression before the '%' sign makes intuitive sense.
+        # But what if there were so many iterations that the training data ran out??
+        # That's what the stuff after the '%' sign does. Why that specific form? No clue.
+        cutoff = (step * batch_size) % (train_data.shape[0] - batch_size)
+
+        # Generate batch.
+        batch_data = train_data[cutoff : (cutoff + batch_size), :, :, :]
+        batch_labels = train_labels_one_hot[cutoff : (cutoff + batch_size)]
+
+        if (step % 20 == 0):
+            print(batch_data[1, :, :, :])
+            print(batch_labels[1])
+
+        # Run optimizer (defined above) using 'feed_dict' to feed in the batch.
+        _, l, pred = session.run([optimizer, loss, train_pred],
+                                 feed_dict = {train_place : batch_data,
+                                              train_labels : batch_labels})
+
+        # Print progress and metrics.
+        if (step % 50 == 0):
+
+            # Print step and loss.
+            print('Step ', step)
+            print('Loss :', l)
+            print('Training Accuracy',
+                  tf.reduce_mean(tf.cast(tf.equal(tf.argmax(pred, 1),
+                                                  tf.argmax(batch_labels, 1)), tf.float32)).eval())
+
+    # There are no test set labels, so I can't print test set accuracy.
     
 
 
 
 
-##################
-### BASELINE MODEL
-###################
-### This section implements a baseline random forest model with no feature engineering or modification.
-##
-### Get training set features.
-##train_features = train.drop('label',
-##                            axis = 1)
-##
-### Create and fit random forest classifier.
-### This script is mostly instructional so I use a very small number of trees.
-### I also only use a subset of 'train' for the random forest to avoid hitting a memory error.
-### I assume the order of the data doesn't matter because I just use the first few rows (no random sampling of rows).
-##baseline_rf = RandomForestClassifier(n_estimators = 25,
-##                                     oob_score = True,
-##                                     random_state = 1234)
-##baseline_rf.fit(train_features,
-##                train['label'])
-##
-### Generate predictions for training and test data.
-##train['baseline_pred'] = baseline_rf.predict(train_features)
-##test['baseline_pred'] = baseline_rf.predict(test)
-##
-### Compute training set accuracy.
-### Training set accuracy is 99.9976%.
-##100 * sum(train['label'] == train['baseline_pred']) / len(train['baseline_pred'])
-##
-### Check cross-validation accuracy.
-### For random forest, OOB score can be used for cross-validation.
-### OOB accuracy is 93.55%.
-##print(baseline_rf.oob_score_)
-##
-### Test set accuracy cannot be checked as I do not have the answers for the test set.
-##
-### Delete 'baseline_rf' to avoid a memory error later.
-##del(baseline_rf)
-##
-#############
-### PCA MODEL
-#############
-### This section conducts Principal Components Analysis (PCA) before using a random forest model for prediction.
-##
-### Create and fit principal component analysis object.
-### I conduct one PCA removing many of the least useful components.
-### I exclude the full component PCA (included in the R branch) to avoid hitting a memory error.
-### Normally, I would scale 'train'. But I do not for 2 reasons:
-### 1. All of the data is pixel data ranging from 0 to 255 so the scales are identical for all variables.
-### 2. Some of the columns are all a single number (I assume 0) which makes scaling fail.
-##pca = PCA(n_components = 50,
-##          random_state = 1234).fit(train_features.sample(n = 1000))
-##
-### Apply 'pca' to 'train' and 'test'.
-##train_comp = pca.transform(train_features)
-##test_comp = pca.transform(test.drop('baseline_pred',
-##                                    axis = 1))
-##
-### Create and fit a random forest using 'train_comp'.
-##pca_rf = RandomForestClassifier(n_estimators = 25,
-##                                oob_score = True,
-##                                random_state = 1234)
-##pca_rf.fit(train_comp,
-##           train['label'])
-##
-### Generate predictions for 'train' using 'pca_rf'.
-##train['pca_pred'] = pca_rf.predict(train_comp)
-##
-### Check training set accuracy for 'pca_rf'.
-### Training set accuracy is 99.9976%.
-### 'pca_pred' is extremely similar to 'baseline_pred'.
-### Thus, the training error for 'pca_rf' is extremely similar to the training error for 'baseline_rf'.
-##100 * sum(train['label'] == train['pca_pred']) / len(train['label'])
-##
-### Check cross-validation accuracy for 'pca_rf'.
-### OOB accuracy is 90.8%.
-### The OOB accuracy for 'pca_rf' is lower than the OOB accuracy for 'baseline_rf'.
-##pca_rf.oob_score_
-##
-### Generate predictions for 'test' using 'pca_rf'.
-##test['pca_pred'] = pca_rf.predict(test_comp)
-##
-### Test set accuracy cannot be checked as I do not have the answers for the test set.
+        
+    
+
+
+
+
