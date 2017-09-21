@@ -60,7 +60,7 @@ image_size = 28
 channels = 1
 
 # Set # of iterations to run.
-steps = 100
+steps = 1000
 
 # Set batch size.
 batch_size = 16
@@ -86,13 +86,13 @@ with graph.as_default():
     # Set random seed.
     tf.set_random_seed(20170914)
 
-    # Input placeholders for batch processes.
-    # Input test data.
+    # Input placeholders for batch processes and full training data.
     train_place = tf.placeholder(tf.float32,
                                  shape = (batch_size, image_size, image_size, channels))
     train_labels = tf.placeholder(tf.float32,
                                   shape = (batch_size, classes))
-    test_data = tf.constant(test_data)
+    full_train_data = tf.constant(train_data)
+    full_train_labels = tf.constant(train_labels_one_hot)
 
     # Specify convolution filters and biases.
     filter_1 = tf.Variable(tf.truncated_normal([patch_size,
@@ -165,10 +165,12 @@ with graph.as_default():
                                                                   logits = logits))
 
     # Specify optimizer.
-    optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
+    # Interestingly, with a higher learning rate, the loss comes back 'nan' for most iterations.
+    optimizer = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
 
     # Generate predictions for training and test set.
     train_pred = tf.nn.softmax(logits)
+    full_train_pred = tf.nn.softmax(training_computations(full_train_data))
     test_pred = tf.nn.softmax(training_computations(test_data))
 
 # Run graph.
@@ -190,27 +192,28 @@ with tf.Session(graph = graph) as session:
         batch_data = train_data[cutoff : (cutoff + batch_size), :, :, :]
         batch_labels = train_labels_one_hot[cutoff : (cutoff + batch_size)]
 
-        if (step % 20 == 0):
-            print(batch_data[1, :, :, :])
-            print(batch_labels[1])
-
         # Run optimizer (defined above) using 'feed_dict' to feed in the batch.
         _, l, pred = session.run([optimizer, loss, train_pred],
                                  feed_dict = {train_place : batch_data,
                                               train_labels : batch_labels})
 
         # Print progress and metrics.
-        if (step % 50 == 0):
+        if (step % 100 == 0):
 
             # Print step and loss.
             print('Step ', step)
             print('Loss :', l)
-            print('Training Accuracy',
+            print('Training Batch Accuracy',
                   tf.reduce_mean(tf.cast(tf.equal(tf.argmax(pred, 1),
                                                   tf.argmax(batch_labels, 1)), tf.float32)).eval())
+            print('')
 
     # There are no test set labels, so I can't print test set accuracy.
-    
+    # Instead I print accuracy on the whole training set.
+    print('Overall Training Set Accuracy',
+                  tf.reduce_mean(tf.cast(tf.equal(tf.argmax(full_train_pred, 1),
+                                                  tf.argmax(full_train_labels, 1)), tf.float32)).eval())
+
 
 
 
