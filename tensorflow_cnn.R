@@ -31,11 +31,11 @@ test = data.table(read_csv('test.csv'))
   
   # Images currently have 1 row per image.
   # For a CNN, I need square/rectangle images so the filter can sweep along.
-  full_train_data = tf$reshape(train_data, 
-                               shape = c(nrow(train), 28L, 28L, 1L))
-  test_data = tf$reshape(test_data, 
-                         shape = c(nrow(test), 28L, 28L, 1L))
-  
+  train_data = array(train_data, 
+                     dim = c(nrow(train), 28L, 28L, 1L))
+  test_data = array(test_data, 
+                    dim = c(nrow(test), 28L, 28L, 1L))
+
   # Turn training labels into one-hot vectors.
   # Training labels are already integers.
   # There are no labels for the test data.
@@ -81,6 +81,10 @@ test = data.table(read_csv('test.csv'))
   train_labels = tf$placeholder(tf$float32,
                                 shape = c(batch_size, classes))
   full_train_labels = tf$constant(train_labels_one_hot)
+  full_train_data = tf$constant(train_data, 
+                                dtype = tf$float32)
+  full_test_data = tf$constant(test_data, 
+                               dtype = tf$float32)
   
   # Specify convolution filters and biases.
   filter_1 = tf$Variable(tf$truncated_normal(c(patch_size,
@@ -151,6 +155,65 @@ test = data.table(read_csv('test.csv'))
   
   # Execute training computation.
   logits = training_computations(train_place)
+  
+  # Specify loss.
+  loss = tf$reduce_mean(tf$nn$softmax_cross_entropy_with_logits(labels = train_labels,
+                                                                logits = logits))
+  
+  # Specify optimizer.
+  optimizer = tf$train$GradientDescentOptimizer(0.01)$minimize(loss)
+  
+  # Generate predictions for training and test set.
+  train_pred = tf$nn$softmax(logits)
+  full_train_pred = tf$nn$softmax(training_computations(full_train_data))
+  test_pred = tf$nn$softmax(training_computations(full_test_data))
+  
+  # Launch the graph and initialize the variables.
+  session = tf$Session()
+  session$run(tf$global_variables_initializer())
+  
+  # Iterate.
+  for (step in 1:steps)
+    
+  {
+    
+    # Select index to pick batch.
+    # Just having the expression before the '%' sign makes intuitive sense.
+    # But what if there were so many iterations that the training data ran out??
+    # That's what the stuff after the '%' sign does. Why that specific form? No clue.
+    cutoff = (step * batch_size) %% (dim(train_data)[1] - batch_size)
+    
+    # Generate batch.
+    batch_data = train_data[(cutoff + 1) : (cutoff + batch_size), 1:28, 1:28, 1, 
+                            drop = F]
+    batch_labels = train_labels_one_hot[(cutoff + 1) : (cutoff + batch_size), 1:10]
+    
+    # Run optimizer (defined above) using 'feed_dict' to feed in the batch.
+    session$run(optimizer, 
+                feed_dict = dict(train_place = batch_data, 
+                                 train_labels = batch_labels))
+    
+    # Print progress and metrics.
+    if (step %% 100 == 0)
+      
+    {
+      
+      # Print metrics.
+      print(paste0('Step ', step, ':'))
+      print(paste0('Loss: ', 
+                   round(session$run(loss, 
+                                     feed_dict = dict(train_place = batch_data, 
+                                                      train_labels = batch_labels)), 2)))
+      print(paste0('Training Set Accuracy: ', 
+                 round(session$run(tf$reduce_mean(tf$cast(tf$equal(tf$argmax(train_pred, 1L), 
+                                                                   tf$argmax(batch_labels, 1L)), 
+                                                          dtype = tf$float32)), 
+                                   feed_dict = dict(train_place = batch_data, 
+                                                    train_labels = batch_labels)), 2)))
+      
+    }
+    
+  }
   
   
   
