@@ -67,7 +67,7 @@ test = data.table(read_csv('test.csv'))
   output_depth = 16L
   
   # Set number of hidden nodes.
-  hidden = 64L
+  hidden = 32L
     
 # CREATE MODEL ------------------------------------------------------------
 # This section creates a CNN using 'tensorflow'.
@@ -182,7 +182,7 @@ test = data.table(read_csv('test.csv'))
     # But what if there were so many iterations that the training data ran out??
     # That's what the stuff after the '%' sign does. Why that specific form? No clue.
     cutoff = (step * batch_size) %% (dim(train_data)[1] - batch_size)
-    
+
     # Generate batch.
     batch_data = train_data[(cutoff + 1) : (cutoff + batch_size), 1:28, 1:28, 1, 
                             drop = F]
@@ -204,16 +204,23 @@ test = data.table(read_csv('test.csv'))
                    round(session$run(loss, 
                                      feed_dict = dict(train_place = batch_data, 
                                                       train_labels = batch_labels)), 2)))
-      print(paste0('Training Set Accuracy: ', 
+      print(paste0('Training Batch Accuracy: ', 
                  round(session$run(tf$reduce_mean(tf$cast(tf$equal(tf$argmax(train_pred, 1L), 
                                                                    tf$argmax(batch_labels, 1L)), 
                                                           dtype = tf$float32)), 
                                    feed_dict = dict(train_place = batch_data, 
                                                     train_labels = batch_labels)), 2)))
+      print('')
       
     }
     
   }
   
-  
+  # There are no test set labels, so I can't print test set accuracy.
+  # Instead I print accuracy on the whole training set.
+  print(paste0('Overall Training Set Accuracy: ', 
+                 100 * round(session$run(tf$reduce_mean(tf$cast(tf$equal(tf$argmax(full_train_pred, 1L), 
+                                                                         tf$argmax(full_train_labels, 1L)), 
+                                                                dtype = tf$float32))), 3), 
+               '%'))
   
